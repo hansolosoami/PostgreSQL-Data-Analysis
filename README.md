@@ -9,3 +9,4 @@ You can restore the toy dataset  "parch and posey" to your local machines from t
 2. Restore into the database - `pg_restore -d parch_and_posey /path/to/parch_and_posey_db`
 
 
+# CHECK OUT postgresql_setup_testing.txt FILE FOR SETUP AND TESTING OF POSTGRESQL IN LINUX.
