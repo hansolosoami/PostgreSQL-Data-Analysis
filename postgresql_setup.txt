@@ -1,0 +1,201 @@
+# POSTGRESQL SETUP
+
+ Ubuntu: (16.04, 14.04) Install: sudo apt-get install postgresql
+
+    postgresql-9.X - libraries and SQL
+    postgresql-common - the database program
+    postgresql-client-9.X - utility programs and man pages
+    postgresql-client-common - utility programs and man pages
+    libpq5 - network client libraries
+
+Starting the database: sudo service postgresql start
+
+Red Hat Enterprise Linux 6 RPM packages:
+
+    postgresql-8.4.11-1.el6_2.x86_64 - commands, HTML docs and man pages
+    postgresql-server-8.4.11-1.el6_2.x86_64 - DB server and locale based messages
+    postgresql-libs-8.4.11-1.el6_2.x86_64 - libraries and locale based messages
+    postgresql-docs-8.4.11-1.el6_2.x86_64 - tutorials, examples and a monster PDF manual
+
+Other RPM packages:
+
+    postgresql-test - lots of examples.
+    postgresql-jdbc - Java connectivity
+    postgresql-plperl - Perl connectivity
+    postgresql-plpython - Python connectivity
+    postgresql-devel - C language connectivity
+
+Starting the database (as root): service postgresql start
+
+The first time this is run you will get the following error:
+/var/lib/pgsql/data is missing. Use "service postgresql initdb" to initialize the cluster first.
+[FAILED]
+
+To initialize the system for the first run (as root): service postgresql initdb
+Initializing database: [ OK ]
+
+Once the database initialization has occurred, one can then start the database (as root): service postgresql restart
+
+Stopping postgresql service:                               [  OK  ]
+Starting postgresql service:                               [  OK  ]
+       
+
+The user "postgres" should have already been configured by the installation of the RPMs. Info:
+
+    User: postgres
+    Home directory: /var/lib/pgsql
+    Default shell: /bin/bash
+
+A password will be missing. As root issue the command: passwd postgres to assign a password for user postgres.
+
+PostgreSQL post install:
+
+    Login as user postgres: su - postgres
+    This will execute the profile: /var/lib/pgsql/.bash_profile
+
+    PGLIB=/usr/lib/pgsql
+    PGDATA=/var/lib/pgsql/data
+    export PGLIB PGDATA
+         
+            
+
+    Initialize PostgreSQL database server: initdb --pgdata=/var/lib/pgsql/data
+    This creates a bunch of directories, a template directory and sets up the postgres configuration in the user directory /var/lib/pgsql/. Red Hat start command (service)/script (rc script) will perform this task if it has not already been performed. See next step - Starting the database.
+
+    Starting the database server: As root. (from most to least favorite method)
+    service postgresql start
+    (If the database has not already been initialized with initdb, this will be performed by the command)
+    OR
+    /etc/rc.d/init.d/postgresql start
+    (If the database has not already been initialized with initdb, this will be performed by the script)
+    OR
+    /usr/bin/pg_ctl -D /var/lib/pgsql/data -p /usr/bin/postmaster -l logfile start &
+    OR
+    /usr/bin/postmaster -D /var/lib/pgsql/data &
+
+    Notes:
+        Configuration file: /var/lib/pgsql/data/postgresql.conf
+        By default there is no network access. See the directive tcpip_socket. (Required for ODBC,JDBC) Also see the postmaster directive "-i". Logging and tuning parameters are specified here.
+        Host Access file: /var/lib/pgsql/data/pg_hba.conf
+        Authentication/Identification file: /var/lib/pgsql/data/pg_ident.conf
+
+Using the PostgreSQL Database:
+
+    Create a database: /usr/bin/createdb bedrock
+    (As Linux user postgres: sudo su - postgres)
+
+    Connect to the database: /usr/bin/psql bedrock
+    Execute command as Linux user postgres
+    You will now be at the PostgreSQL command line prompt.
+
+    [prompt]$ psql             - or "psql bedrock"
+    Welcome to psql, the PostgreSQL interactive terminal.
+
+    Type:  \copyright for distribution terms
+           \h for help with SQL commands
+           \? for help on internal slash commands
+           \g or terminate with semicolon to execute query
+           \q to quit
+
+    bedrock=#
+    bedrock=# \c bedrock
+    You are now connected to database bedrock.
+    bedrock=# create table employee (Name char(20),Dept char(20),jobTitle char(20));
+    CREATE TABLE
+    bedrock=# INSERT INTO employee VALUES ('Fred Flinstone','Quarry Worker','Rock Digger');
+    INSERT 0 1
+    bedrock=# INSERT INTO employee VALUES ('Wilma Flinstone','Finance','Analyst');
+    bedrock=# INSERT into employee VALUES ('Barney Rubble','Sales','Neighbor');
+    bedrock=# INSERT INTO employee VALUES ('Betty Rubble','IT','Neighbor');
+    bedrock=# SELECT * from employee;
+             name         |         dept         |       jobtitle       
+    ----------------------+----------------------+----------------------
+     Fred Flinstone       | Quarry Worker        | Rock Digger         
+     Wilma Flinstone      | Finance              | Analyst             
+     Barney Rubble        | Sales                | Neighbor            
+     Betty Rubble         | IT                   | Neighbor            
+    (4 rows)
+
+    bedrock=#
+    bedrock=# \q
+              
+
+    Database discovery / Examine a database (as user postgres: su - postgres):
+    [postgres]$ psql
+        \l :List databases
+        \c database-name :Connect to database
+        \c :Show the database your are connected to
+        \d :List tables in database
+        \d table-name :Describe table
+        SELECT * FROM table-name :List table contents
+
+    More info:
+        Create a user:
+            Command line: [prompt]$ createuser dude
+            SQL: CREATE USER dude WITH PASSWORD 'supersecret';
+            Change with ALTER USER
+        Grant priveliges:
+            SQL: GRANT UPDATE ON table-name to dude
+            SQL: GRANT SELECT ON table-name to dude
+            SQL: GRANT INSERT ON table-name to dude
+            SQL: GRANT DELETE ON table-name to dude
+            SQL: GRANT RULE ON table-name to dude
+            SQL - Do it all: GRANT ALL PRIVILEGES ON table-name to public
+        Delete a user:
+            Command line: [prompt]$ dropuser SuperDude
+        Delete a database:
+            Command line:
+                [prompt]$ destroydb bedrock
+                [prompt]$ dropdb bedrock
+            SQL: DROP DATABASE bedrock;
+        Create a database:
+            Command line: [prompt]$ createdb bedrock -U user-name -W
+            You will be prompted for a password. (or execute as Linux user postgres without -U and -W options)
+            SQL: CREATE DATABASE bedrock
+        Version Upgrades:
+            Dump: [prompt]$ postgresql-dump -t /var/lib/pgsql/backup/db.bak -p /var/lib/pgsql/backup/old -d
+            Restore: [prompt]$ psql -e template1 < /var/lib/pgsql/backup/db.bak
+            The table template1 is the default administrative database.
+
+postgres=# CREATE DATABASE bedrock;
+CREATE DATABASE
+postgres=# \c bedrock
+You are now connected to database "bedrock" as user "postgres".
+bedrock=# CREATE USER dude WITH PASSWORD 'supersecret';
+CREATE ROLE
+bedrock=# GRANT ALL PRIVILEGES ON employee to dude;
+GRANT
+bedrock=# \z
+                                  Access privileges
+ Schema |   Name   | Type  |     Access privileges     | Column privileges | Policies 
+--------+----------+-------+---------------------------+-------------------+----------
+ public | employee | table | postgres=arwdDxt/postgres+|                   | 
+        |          |       | dude=arwdDxt/postgres     |                   | 
+(1 row)
+
+User GUI interfaces to the database are often written with web based frameworks like PHP or Java with a servlet back-end. See the YoLinux tutorial on accessing PostgreSQL with JDBC in a Tomcat servlet example.
+
+Links/Info:
+
+    PostgreSQL additional info and documentation:
+        /usr/share/doc/postgresql/
+        /usr/share/doc/postgresql-common/
+    Resources: /usr/share/pgsql/
+
+Backup / Restore a PostgreSQL Database:
+
+Backup / Dump a database:
+
+    [prompt]$ pg_dump dbname > outfile
+    [prompt]$ pg_dump dbname -h localhost -U postgres -t tablename > outfile
+    if migrating the resulting SQL into another SQL database, add the option: --no-owner. This eliminates the ALTER OWNER or SET SESSION AUTHORIZATION statements.
+    [prompt]$ pg_dumpall > outfile
+    [prompt]$ pg_dumpall -Fc dbname > outfile
+
+Restore a database:
+
+    [prompt]$ psql dbname < infile
+    where infile is the file output by the pg_dump command. The database dbname will not be created by this command but can be generated with: createdb dbname
+    [prompt]$ psql -f infile postgres
+    if you are loading into an empty cluster then "postgres" should usually be used.
+
