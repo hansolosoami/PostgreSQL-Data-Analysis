@@ -1,0 +1,64 @@
+------How to use JSONB in Postgres-----
+
+1. Defining columns
+
+	  CREATE TABLE cards (
+	  id integer NOT NULL,
+	  board_id integer NOT NULL,
+	  data jsonb
+	);
+
+2. Inserting JSON data
+
+INSERT INTO cards VALUES (1, 1, '{"name": "Paint house", "tags": ["Improvements", "Office"], "finished": true}');
+INSERT INTO cards VALUES (2, 1, '{"name": "Wash dishes", "tags": ["Clean", "Kitchen"], "finished": false}');
+INSERT INTO cards VALUES (3, 1, '{"name": "Cook lunch", "tags": ["Cook", "Kitchen", "Tacos"], "ingredients": ["Tortillas", "Guacamole"], "finished": false}');
+INSERT INTO cards VALUES (4, 1, '{"name": "Vacuum", "tags": ["Clean", "Bedroom", "Office"], "finished": false}');
+INSERT INTO cards VALUES (5, 1, '{"name": "Hang paintings", "tags": ["Improvements", "Office"], "finished": false}');
+
+
+3. Querying data
+	SELECT data->>'name' AS name FROM cards
+
+4. Filtering results
+	SELECT * FROM cards WHERE data->>'finished' = 'true';
+
+5.Checking for column existence
+	SELECT count(*) FROM cards WHERE data ? 'ingredients'; 
+
+6. Expanding data
+	SELECT jsonb_array_elements_text(data->'tags') as tag
+	FROM cards
+	WHERE id = 1;
+
+------------------------------------------------------------------------------------------------------------
+
+---------The real benefit of JSONB: Indexes------------
+
+1. creating the index 
+	
+	CREATE INDEX idxfinished ON cards ((data->>'finished'));
+
+//now has an index, we end up cutting the time in half
+
+2. 
+	select * from cards 
+	where data ->'tags' ? 'Kitchen';
+
+3. 	
+	SELECT count(*) FROM cards
+	WHERE
+	  data->'tags' ? 'Clean'
+	  AND data->'tags' ? 'Kitchen';
+
+4. The explain analyze output also shows us how it is using the idxgintags index.
+
+	//Lastly, we can add a GIN index on the entire data field, which will allow us a bit more flexibility 		in terms of how we can query the data.
+
+	CREATE INDEX idxgintags ON cards USING gin ((data->'tags'));
+
+---------------------------------------Conclusion-----------------------------------------------------
+
+1.	We’ve seen that Postgres now contains some very powerful JSON constructs. Mixing the power of thing, is it not?) with the flexibility of the JSONB data type offers many benefits without the complexity of having two separate databases.
+
+2.	You are also able to avoid making compromises that are sometimes present in document databases (if you ever have to update a reference to the user’s name in five different places, you’ll know what I’m talking about.) Give it a try! Who says you can’t teach an old dog some new tricks?
